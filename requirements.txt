@@ -1,0 +1,20 @@
+# --- Data prep + validation (no GPU needed, tested offline) ---
+pydantic>=2.6
+PyYAML>=6.0
+pillow>=10.2
+numpy>=1.26
+huggingface_hub>=0.22
+python-dotenv>=1.0
+
+# --- Training + inference (needs a real GPU + these installed) ---
+# torch: install the build matching your CUDA version from
+# https://pytorch.org/get-started/locally/ — do not just `pip install torch`
+# blindly, especially on Colab/a cloud box, or you may get a CPU-only build.
+torch>=2.2
+transformers>=4.46          # first version with Qwen2.5-VL support
+accelerate>=0.34
+peft>=0.13                  # LoRA — this repo never uses bitsandbytes/QLoRA
+qwen-vl-utils>=0.0.8         # Qwen's own image/video preprocessing helpers
+
+# --- dev / test only ---
+pytest>=8.0

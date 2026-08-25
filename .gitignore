@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Never commit data or model weights
+data/
+checkpoints/
+*.jsonl
+*.zip
+
+.env
+.DS_Store
+.pytest_cache/

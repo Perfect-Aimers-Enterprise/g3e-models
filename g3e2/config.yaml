@@ -1,0 +1,72 @@
+# G3E-2 training configuration.
+#
+# LoRA ONLY — deliberately no BitsAndBytesConfig / 4-bit / QLoRA anywhere
+# in this config or in g3e2/train.py. If you later hit GPU memory limits
+# and need QLoRA, that is a considered decision to make explicitly (add
+# load_in_4bit + BitsAndBytesConfig back in train.py) — this file staying
+# LoRA-only is intentional, not an oversight to "fix" by adding
+# quantization defaults back in.
+
+model:
+  base_model: "Qwen/Qwen2.5-VL-3B-Instruct"
+  torch_dtype: "bfloat16"   # plain full/half precision load — no quantization
+
+lora:
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  # Do NOT blindly assume "merger" or other vision-projector module names
+  # are valid — inspect the actual installed Qwen2.5-VL module names
+  # first (train.py's preflight step prints them) and only target modules
+  # that exist in that model version. This starting list is the
+  # language-model attention/MLP projections only.
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+data:
+  train_jsonl: "./data/g3e2/train.jsonl"
+  val_jsonl: "./data/g3e2/val.jsonl"
+  test_jsonl: "./data/g3e2/test.jsonl"
+  max_image_side: 640   # resize cap fed to the processor; matches g3e-data-engine's normalize.target_size
+
+training:
+  output_dir: "./checkpoints/g3e2"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 0.0002
+  warmup_ratio: 0.03
+  logging_steps: 10
+  save_steps: 200
+  eval_steps: 200
+  bf16: true
+
+  # Section 18's staged validation — train.py refuses to start
+  # `full_training` until every earlier stage has passed in the same run
+  # (or --skip-checks is passed explicitly, which is never recommended).
+  stages:
+    - dataset_validation
+    - sample_load_test
+    - batch_forward_test
+    - batch_backward_test
+    - lora_param_check
+    - tiny_overfit_test
+    - short_training_run
+    - full_training
+
+  tiny_overfit_test:
+    num_samples: 8
+    num_steps: 50
+    loss_should_drop_below: 0.5
+
+versioning:
+  model_name: "g3e-2"
+  version: "v1.0.0"
